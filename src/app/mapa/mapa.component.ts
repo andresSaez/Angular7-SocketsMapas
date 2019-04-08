@@ -37,12 +37,40 @@ export class MapaComponent implements OnInit {
   escucharSockets() {
 
     // marcador-nuevo
+    this.wsService.listen( 'marcador-nuevo')
+      .subscribe( (marcador: Lugar ) => {
+        this.agregarMarcador( marcador);
+      });
 
 
     // marcador-mover
+    this.wsService.listen( 'marcador-mover' )
+      .subscribe( (marcador: Lugar) => {
+
+        for ( const i in this.marcadores ) {
+
+          if ( this.marcadores[i].getTitle() === marcador.id ) {
+
+            const latLng = new google.maps.LatLng( marcador.lat, marcador.lng );
+            this.marcadores[i].setPosition( latLng );
+            break;
+          }
+
+        }
+      });
 
 
     // marcador-borrar
+    this.wsService.listen( 'marcador-borrar' )
+      .subscribe( ( id: string ) => {
+
+        for ( const i in this.marcadores ) {
+          if ( this.marcadores[i].getTitle() === id ) {
+            this.marcadores[i].setMap( null );
+            break;
+          }
+        }
+      });
   }
 
   cargarMapa() {
@@ -69,6 +97,7 @@ export class MapaComponent implements OnInit {
       this.agregarMarcador( nuevoMarcador );
 
       // Emitir evento de socket, agregar marcador
+      this.wsService.emit('marcador-nuevo', nuevoMarcador );
 
     });
 
@@ -108,6 +137,7 @@ export class MapaComponent implements OnInit {
       marker.setMap( null );
 
       // Disparar un evento de socket, para borrar marcador
+      this.wsService.emit('marcador-borrar', marcador.id );
     });
 
     google.maps.event.addDomListener( marker, 'drag', ( coors ) => {
@@ -119,8 +149,8 @@ export class MapaComponent implements OnInit {
         id: marcador.id // arreglar esto
       };
 
-      console.log( nuevoMarcador );
       // Disparar un evento de socket, para mover el marcador
+      this.wsService.emit( 'marcador-mover', nuevoMarcador );
     });
   }
 
